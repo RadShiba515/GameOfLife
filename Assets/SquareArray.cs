@@ -19,10 +19,12 @@ public class SquareArray : MonoBehaviour {
     public float xOffset;
     [Tooltip("Default value: 0.18")]
     public float yOffset;
+    public float tickTime;
 
     public Sprite liveSprite;
     public Sprite deadSprite;
 
+    TimeScale ts;
     GameObject[][] squares;
 
     public SquareArray() {
@@ -45,6 +47,8 @@ public class SquareArray : MonoBehaviour {
         liveSprite = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(Sprite)) as Sprite;
         guid = AssetDatabase.FindAssets(deadSprite.name)[0];
         deadSprite = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(Sprite)) as Sprite;
+
+        ts = this.gameObject.GetComponent<TimeScale>();
 
         // Start in the bottom left corner, all negative quadrant.
         Vector3 currentPos = new Vector3
@@ -88,18 +92,47 @@ public class SquareArray : MonoBehaviour {
         }
     }
 
+    float lastTick;
+    float currentTime;
+
     // Update is called once per frame
     void Update()
     {
+        lastTick = Time.time - tickTime;
+        currentTime = Time.time;
+        // State machine!
+        switch(ts.state) {              //      STATES
+
+            case 0:                     // 0 - Idle
+                // Do nothing!
+                break;
+            case 1:                     // 1 - Play
+                if(currentTime - lastTick >= tickTime) {
+                    ruleEnforcement();
+                }
+                break;
+            case 2:                     // 2 - Step forward
+                ruleEnforcement();
+                ts.state = 0;
+                break;
+            case 3:                     // 3 - Step backward
+                print("no.");
+                break;
+            default:
+                break;
+        }
+    }
+
+    void ruleEnforcement() {
         // ----------RULE ENFORCEMENT----------
         Square current;
         int neighbors;
-        for(int x = 0; x < gridWidth; x++) {
-            for(int y = 0; y < gridHeight; y++) {
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
                 current = squares[x][y].GetComponent<Square>();
                 neighbors = getAliveNeighbors(x, y);
                 // If alive...
-                if(current.alive) {
+                if (current.alive) {
                     // Underpopulation
                     if (neighbors < 2) current.changeState(false);
                     // Overpopulation
@@ -112,8 +145,7 @@ public class SquareArray : MonoBehaviour {
                 }
             }
         }
-
-        // ----------TIME CONTROL----------
+        lastTick = Time.time;
     }
 
     internal int getAliveNeighbors(int x, int y) {
