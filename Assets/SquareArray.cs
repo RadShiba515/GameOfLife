@@ -144,6 +144,12 @@ public class SquareArray : MonoBehaviour {
         // is the current time for comparison.
         currentTime = Time.time;
 
+        if(Input.GetKeyDown(KeyCode.R)) {
+            Randomize();
+        } if(Input.GetKeyDown(KeyCode.C)) {
+            Clear();
+        }
+
         // State machine! Our TimeScale object takes input while we check its state
         switch(ts.state) {              //      STATES
 
@@ -234,11 +240,35 @@ public class SquareArray : MonoBehaviour {
         return numAlive;
     }
 
+    void Randomize() {
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
+                buffer[x][y] = UnityEngine.Random.Range(0, 2) == 1 ? true : false;
+                squares[x][y].GetComponent<Square>().alive = buffer[x][y];
+            }
+        }
+    }
+
+    void Clear() {
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
+                squares[x][y].GetComponent<Square>().alive = false;
+                buffer[x][y] = false;
+            }
+        }
+    }
+
+
     // Tick function. Reads from the buffer and updates the board.
     void Tick() {
+        Square cur;
+
         for(int x = 0; x < gridWidth; x++) {
             for(int y = 0; y < gridHeight; y++) {
-                squares[x][y].GetComponent<Square>().changeState(buffer[x][y]);
+                cur = squares[x][y].GetComponent<Square>();
+                if (cur.alive != buffer[x][y]) {
+                    squares[x][y].GetComponent<Square>().changeState(buffer[x][y]);
+                }
             }
         }
     }

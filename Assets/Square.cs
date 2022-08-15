@@ -6,7 +6,7 @@ using UnityEditor;
 // Square class! In charge of individual square changes and sprite management!
 public class Square : MonoBehaviour
 {
-    public bool alive;
+    public bool alive = false;
     public Vector2Int location;
     SpriteRenderer sr;
     SquareArray parent;
@@ -26,8 +26,6 @@ public class Square : MonoBehaviour
 
     void Start()
     {
-        // Default value, change to true for some chaos.
-        alive = false;
         // Setting up spriterenderer and parent array object reference.
         sr = this.gameObject.GetComponentInChildren<SpriteRenderer>();
         parent = this.GetComponentInParent<SquareArray>();
@@ -45,18 +43,20 @@ public class Square : MonoBehaviour
         }
     }
 
-    private void OnMouseDown() {
-        changeState();
-        parent.buffer[location.x][location.y] = alive;
-        // parent.changeNeighborStates(location.x, location.y);
-    }
-
+    float flipCd = 0.2f;
+    float lastTime = -1f;
     private void OnMouseOver() {
-
-        if(Input.GetMouseButtonDown(1)) {
-            print(location);
-            print('\t' + (parent.getAliveNeighbors(location.x, location.y).ToString()));
+        if (lastTime == -1f || Time.time - lastTime >= flipCd) {
+            if (Input.GetMouseButton(0)) {
+                changeState();
+                parent.buffer[location.x][location.y] = alive;
+                lastTime = Time.time;
+            }
+            if (Input.GetMouseButton(1)) {
+                print(location);
+                print('\t' + (parent.getAliveNeighbors(location.x, location.y).ToString()));
+                lastTime = Time.time;
+            }
         }
     }
-
 }
