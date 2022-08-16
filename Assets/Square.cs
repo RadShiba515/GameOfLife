@@ -6,22 +6,11 @@ using UnityEditor;
 // Square class! In charge of individual square changes and sprite management!
 public class Square : MonoBehaviour
 {
-    public bool alive = false;
     public Vector2Int location;
     SpriteRenderer sr;
     SquareArray parent;
 
     public Square() {
-    }
-
-    // changeState swaps states with no argument...
-    public void changeState() {
-        alive = !alive;
-    }
-
-    // and sets the specified state if given a bool!
-    public void changeState(bool state) {
-        alive = state;
     }
 
     void Start()
@@ -35,10 +24,10 @@ public class Square : MonoBehaviour
     void Update()
     {
         // ----------UPDATE SPRITE----------
-        if(alive && sr.sprite != parent.liveSprite) {
+        if(parent.grid[location.x][location.y] && sr.sprite != parent.liveSprite) {
             sr.sprite = parent.liveSprite;
         }
-        if(!alive && sr.sprite != parent.deadSprite) {
+        if(!parent.grid[location.x][location.y] && sr.sprite != parent.deadSprite) {
             sr.sprite = parent.deadSprite;
         }
     }
@@ -48,8 +37,8 @@ public class Square : MonoBehaviour
     private void OnMouseOver() {
         if (lastTime == -1f || Time.time - lastTime >= flipCd) {
             if (Input.GetMouseButton(0)) {
-                changeState();
-                parent.buffer[location.x][location.y] = alive;
+                parent.grid[location.x][location.y] = !parent.grid[location.x][location.y];
+                parent.buffer[location.x][location.y] = !parent.buffer[location.x][location.y];
                 lastTime = Time.time;
             }
             if (Input.GetMouseButton(1)) {

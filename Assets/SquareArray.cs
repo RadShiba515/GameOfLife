@@ -14,8 +14,10 @@ public class SquareArray : MonoBehaviour {
 
     // "Resolution" of the grid
     [Tooltip("Default value: 112")]
+    [Range(1, 500)]
     public int gridWidth;
     [Tooltip("Default value: 55")]
+    [Range(1, 500)]
     public int gridHeight;
 
     // Distance between squares
@@ -31,9 +33,13 @@ public class SquareArray : MonoBehaviour {
     public Sprite liveSprite;
     public Sprite deadSprite;
 
+    // Default state to initialize all squares in.
+    public bool defaultState;
+
     // Our timescale component and squares array!
     TimeScale ts;
     GameObject[][] squares;
+    internal bool[][] grid;
     internal bool[][] buffer;
 
     // Start is called before the first frame update
@@ -62,13 +68,6 @@ public class SquareArray : MonoBehaviour {
         ts = this.gameObject.GetComponent<TimeScale>();
         // Creating our 2D buffer array. For some reason cpp doesn't let you
         // do new bool[width][height]?? idk why. but this works!
-        buffer = new bool[gridWidth][];
-        for (int i = 0; i < buffer.Length; i++) {
-            buffer[i] = new bool[gridHeight];
-            for(int j = 0; j < buffer[0].Length; j++) {
-                buffer[i][j] = false;
-            }
-        }
 
         // ----------GRID CREATION----------
 
@@ -82,11 +81,15 @@ public class SquareArray : MonoBehaviour {
 
         // Instantiate x axis
         squares = new GameObject[gridWidth][];
+        buffer = new bool[gridWidth][];
+        grid = new bool[gridWidth][];
 
-        for(int x = 0; x < gridWidth; x++) {
+        for (int x = 0; x < gridWidth; x++) {
 
             // Instantiate y axis
             squares[x] = new GameObject[gridHeight];
+            buffer[x] = new bool[gridHeight];
+            grid[x] = new bool[gridHeight];
 
             for(int y = 0; y < gridHeight; y++) {
 
@@ -96,40 +99,15 @@ public class SquareArray : MonoBehaviour {
                 squares[x][y].transform.parent = this.gameObject.transform;
                 // Finally, we tell it where it is via its location vector!
                 squares[x][y].GetComponent<Square>().location = new Vector2Int(x, y);
-                buffer[x][y] = squares[x][y].GetComponent<Square>().alive;
+
+                grid[x][y] = defaultState;
+                buffer[x][y] = grid[x][y];
 
                 currentPos.y += yOffset;
             }
             // After each column, go to the next x value and reset the y value.
             currentPos.x += xOffset;
             currentPos.y -= (yOffset * gridHeight);
-        }
-    }
-
-    // changeNeighborStates takes one square and revives it and all neighbors.
-    internal void changeNeighborStates(int x, int y) {
-        // Reference variable for current square
-        Square current;
-        // We're using the same x and y offset loop variables from the rule enforcement function.
-        for (int xOff = -1; xOff <= 1; xOff++) {
-            for (int yOff = -1; yOff <= 1; yOff++) {
-                // Storing these for quick comparisons
-                int indX = xOff + x;
-                int indY = yOff + y;
-                if (
-                    // Corner cases
-                    (xOff == 0 && yOff == 0)
-                    || (indX < 0)
-                    || (indY < 0)
-                    || (indX >= squares.Length)
-                    || (indY >= squares[0].Length)
-                    ) continue;
-                // Actual purpose of the function!
-                if (squares[indX][indY]) {
-                    current = squares[indX][indY].GetComponent<Square>();
-                    if (!current.alive) current.changeState(true);
-                }
-            }
         }
     }
 
@@ -179,23 +157,19 @@ public class SquareArray : MonoBehaviour {
     // New modification: ONLY reading from the board is important now.
     // The only thing we should be writing to is the buffer!
     void ruleEnforcement() {
-        // Reference variable
-        Square current;
         // Neighbor count!
         int neighbors = 0;
 
         // Loop through the grid...
         for (int x = 0; x < gridWidth; x++) {
             for (int y = 0; y < gridHeight; y++) {
-                // Store current square component
-                current = squares[x][y].GetComponent<Square>();
                 // ...and store number of living neighbors
                 neighbors = getAliveNeighbors(x, y);
 
                 // Now that we use a buffer, we update their status in the
                 // buffer, not the grid directly.
                 // If alive...
-                if (current.alive) {
+                if (grid[x][y]) {
                     // Underpopulation
                     if (neighbors < 2) buffer[x][y] = false;
                     // Overpopulation
@@ -227,11 +201,11 @@ public class SquareArray : MonoBehaviour {
                     (xOff == 0 && yOff == 0)
                     || (indX < 0)
                     || (indY < 0)
-                    || (indX >= squares.Length)
-                    || (indY >= squares[0].Length)
+                    || (indX >= grid.Length)
+                    || (indY >= grid[0].Length)
                     ) continue;
                 // And count it if it's alive!
-                if (squares[indX][indY].GetComponent<Square>().alive == true) {
+                if (grid[indX][indY]) {
                     numAlive++;
                 }
             }
@@ -244,7 +218,7 @@ public class SquareArray : MonoBehaviour {
         for (int x = 0; x < gridWidth; x++) {
             for (int y = 0; y < gridHeight; y++) {
                 buffer[x][y] = UnityEngine.Random.Range(0, 2) == 1 ? true : false;
-                squares[x][y].GetComponent<Square>().alive = buffer[x][y];
+                grid[x][y] = buffer[x][y];
             }
         }
     }
@@ -252,7 +226,7 @@ public class SquareArray : MonoBehaviour {
     void Clear() {
         for (int x = 0; x < gridWidth; x++) {
             for (int y = 0; y < gridHeight; y++) {
-                squares[x][y].GetComponent<Square>().alive = false;
+                grid[x][y] = false;
                 buffer[x][y] = false;
             }
         }
@@ -261,16 +235,10 @@ public class SquareArray : MonoBehaviour {
 
     // Tick function. Reads from the buffer and updates the board.
     void Tick() {
-        Square cur;
-
-        for(int x = 0; x < gridWidth; x++) {
-            for(int y = 0; y < gridHeight; y++) {
-                cur = squares[x][y].GetComponent<Square>();
-                if (cur.alive != buffer[x][y]) {
-                    squares[x][y].GetComponent<Square>().changeState(buffer[x][y]);
-                }
-            }
-        }
+        for(int x = 0; x < gridWidth; x++)
+            for(int y = 0; y < gridHeight; y++)
+                if (grid[x][y] != buffer[x][y])
+                    grid[x][y] = buffer[x][y];
     }
 
 }

@@ -4,12 +4,12 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
+    [Tooltip("Default value: 0.1")]
     public float speed = 0.1f;
+    [Tooltip("Default value: 0.1")]
     public float zoomSpeed = 0.1f;
-    public float closest = 0.1f;
-    public float furthest = -20f;
-    public float minFOV = 10f;
-    public float maxFOV = 120f;
+    [Tooltip("Default value: 0.5")]
+    public float minFOV = 0.5f;
     Camera cam;
     Vector3 pos;
 
@@ -36,11 +36,18 @@ public class CameraController : MonoBehaviour
             pos += (Vector3.down * speed);
         } if(Input.GetKey(KeyCode.D)) {                                     //  D
             pos += (Vector3.right * speed);
-        } if(Input.mouseScrollDelta.y > 0) {                                // Scroll up
+        }
+
+        this.transform.Translate(pos);
+
+        if (Input.mouseScrollDelta.y > 0) {                                 // Scroll up
             cam.orthographicSize -= zoomSpeed;
-        } if(Input.mouseScrollDelta.y < 0) {                                // Scroll down
+        } if (Input.mouseScrollDelta.y < 0) {                               // Scroll down
             cam.orthographicSize += zoomSpeed;
         }
-        this.transform.Translate(pos);
+
+        if(cam.orthographicSize < minFOV) {
+            cam.orthographicSize = minFOV;
+        }
     }
 }
