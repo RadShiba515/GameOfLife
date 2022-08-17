@@ -26,6 +26,8 @@ public class SquareArray : MonoBehaviour {
     [Tooltip("Default value: 0.18")]
     public float yOffset;
 
+    internal int generation;
+
     // Time between ticks in the timescale.
     public float tickTime;
 
@@ -66,6 +68,7 @@ public class SquareArray : MonoBehaviour {
         }
 
         ts = this.gameObject.GetComponent<TimeScale>();
+        generation = 0;
         // Creating our 2D buffer array. For some reason cpp doesn't let you
         // do new bool[width][height]?? idk why. but this works!
 
@@ -221,6 +224,7 @@ public class SquareArray : MonoBehaviour {
                 grid[x][y] = buffer[x][y];
             }
         }
+        generation = 0;
     }
 
     void Clear() {
@@ -230,6 +234,7 @@ public class SquareArray : MonoBehaviour {
                 buffer[x][y] = false;
             }
         }
+        generation = 0;
     }
 
 
@@ -239,6 +244,7 @@ public class SquareArray : MonoBehaviour {
             for(int y = 0; y < gridHeight; y++)
                 if (grid[x][y] != buffer[x][y])
                     grid[x][y] = buffer[x][y];
+        generation++;
     }
 
 }
