@@ -13,10 +13,10 @@ public class SquareArray : MonoBehaviour {
     public GameObject squarePrefab;
 
     // "Resolution" of the grid
-    [Tooltip("Default value: 112")]
+    [Tooltip("Default value: 50")]
     [Range(1, 500)]
     public int gridWidth;
-    [Tooltip("Default value: 55")]
+    [Tooltip("Default value: 50")]
     [Range(1, 500)]
     public int gridHeight;
 
@@ -49,26 +49,35 @@ public class SquareArray : MonoBehaviour {
     {
         // ----------INITIALIZATION----------
 
-        // What to do if no square prefab. Try to find one in the files and set up our reference by GUID.
-        if(!squarePrefab) {
-            Debug.LogWarning("No square prefab specified", squarePrefab);
-
-            string GUID = AssetDatabase.FindAssets("Square")[0];
-            string assetPath = AssetDatabase.GUIDToAssetPath(GUID);
-            squarePrefab = AssetDatabase.LoadAssetAtPath(assetPath, typeof(GameObject)) as GameObject;
+        // What to do if no square prefab!
+        if(squarePrefab == null) {
+            Debug.LogError("No square prefab specified", squarePrefab);
         }
 
-        // If no sprites set, find them!
-        if (!liveSprite) {
-            string guid = AssetDatabase.FindAssets(liveSprite.name)[0];
-            liveSprite = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(Sprite)) as Sprite;
-        } if(!deadSprite) {
-            string guid = AssetDatabase.FindAssets(deadSprite.name)[0];
-            deadSprite = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), typeof(Sprite)) as Sprite;
+        // If no sprites set
+        if (liveSprite == null) {
+            Debug.LogError("No alive sprite set", liveSprite);
+        } if(deadSprite == null) {
+            Debug.LogError("No dead sprite set", deadSprite);
         }
 
         ts = this.gameObject.GetComponent<TimeScale>();
         generation = 0;
+
+        int prefsWidth = PlayerPrefs.GetInt("gWidth");
+        if (prefsWidth <= 0 || prefsWidth > 500) {
+            gridWidth = 50;
+        } else {
+            gridWidth = PlayerPrefs.GetInt("gWidth");
+        }
+
+        int prefsHeight = PlayerPrefs.GetInt("gHeight");
+        if (prefsHeight <= 0 || prefsHeight > 500) {
+            gridHeight = 50;
+        } else {
+            gridHeight = PlayerPrefs.GetInt("gHeight");
+        }
+
         // Creating our 2D buffer array. For some reason cpp doesn't let you
         // do new bool[width][height]?? idk why. but this works!
 
