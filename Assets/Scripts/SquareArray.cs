@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.Threading;
 
 // SquareArray is our component class in charge of creating and managing the
 // array of squares!
@@ -44,6 +45,12 @@ public class SquareArray : MonoBehaviour {
     internal bool[][] grid;
     internal bool[][] buffer;
 
+    // Lets try some threading!
+    Thread[] threads;
+    int div;
+    int prefsWidth, prefsHeight;
+    bool[] threadsDone;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -63,15 +70,17 @@ public class SquareArray : MonoBehaviour {
 
         ts = this.gameObject.GetComponent<TimeScale>();
         generation = 0;
+        tickTime = PlayerPrefs.GetFloat("tickRate");
 
-        int prefsWidth = PlayerPrefs.GetInt("gWidth");
+        // ----------PULLING GRID SIZE----------
+        prefsWidth = PlayerPrefs.GetInt("gWidth");
         if (prefsWidth <= 0 || prefsWidth > 500) {
             gridWidth = 50;
         } else {
             gridWidth = PlayerPrefs.GetInt("gWidth");
         }
 
-        int prefsHeight = PlayerPrefs.GetInt("gHeight");
+        prefsHeight = PlayerPrefs.GetInt("gHeight");
         if (prefsHeight <= 0 || prefsHeight > 500) {
             gridHeight = 50;
         } else {
@@ -121,6 +130,17 @@ public class SquareArray : MonoBehaviour {
             currentPos.x += xOffset;
             currentPos.y -= (yOffset * gridHeight);
         }
+
+        // ----------THREAD SETUP----------
+        threads = new Thread[Environment.ProcessorCount];
+        div = gridWidth / threads.Length;
+        threadsDone = new bool[threads.Length];
+
+        for (int i = 0; i < threads.Length; i++) {
+            // just... dont ask why.
+            int j = i;
+            threads[i] = new Thread( () => ruleEnforcement(j));
+        }
     }
 
     // Tick variables
@@ -149,12 +169,23 @@ public class SquareArray : MonoBehaviour {
             case 1:                     // 1 - Play
                 // Every {tickTime} seconds, progress the board by 1 tick.
                 if(lastTick == -1.0f || currentTime - lastTick >= tickTime) {
-                    ruleEnforcement();
+                    for (int i = 0; i < threads.Length; i++) {
+                        if(threadsDone[i] && threads[i].IsAlive) {
+                            int j = i;
+                            threads[i] = new Thread(() => ruleEnforcement(j));
+                        }
+                        if (!threadsDone[i] && !threads[i].IsAlive) {
+                                threads[i].Start();
+                        }
+                        if (i != threads.Length - 1 || !threadsDone[i]) continue;
+                        Tick();
+                    }
                 }
                 break;
             case 2:                     // 2 - Step forward
                 // Progress by 1 tick then stop.
-                ruleEnforcement();
+                ruleEnforcement(-1);
+                Tick();
                 ts.state = 0;
                 break;
             case 3:                     // 3 - Step backward
@@ -168,13 +199,24 @@ public class SquareArray : MonoBehaviour {
     // Rule Enforcement function, progresses the board by 1 tick.
     // New modification: ONLY reading from the board is important now.
     // The only thing we should be writing to is the buffer!
-    void ruleEnforcement() {
-        // Neighbor count!
-        int neighbors = 0;
+    void ruleEnforcement(int i) {
+        // Some int vars as a treat
+        int neighbors;
+        int lStart, lEnd;
 
-        // Loop through the grid...
-        for (int x = 0; x < gridWidth; x++) {
-            for (int y = 0; y < gridHeight; y++) {
+        // A little messy but I really can't think of a better way right now
+        lStart = i * div;
+        lEnd = lStart + div;
+        if(i == -1) {
+            lStart = 0;
+        } if(i == -1 || i == threads.Length - 1) {
+            lEnd = prefsWidth;
+        }
+
+        // Loop through the grid... If we're on the last thread, add diff.
+        for (int x = lStart; x < lEnd; x++){
+
+            for (int y = 0; y < prefsHeight; y++) {
                 // ...and store number of living neighbors
                 neighbors = getAliveNeighbors(x, y);
 
@@ -191,8 +233,11 @@ public class SquareArray : MonoBehaviour {
                 }
             }
         }
-        Tick();
-        lastTick = Time.time;
+
+        if(i != -1) {
+            threadsDone[i] = true;
+            Thread.CurrentThread.Join();
+        }
     }
 
     // Function to count the number of living neighbors around a square.
@@ -254,6 +299,10 @@ public class SquareArray : MonoBehaviour {
                 if (grid[x][y] != buffer[x][y])
                     grid[x][y] = buffer[x][y];
         generation++;
+        lastTick = Time.time;
+        for(int i = 0; i < threadsDone.Length; i++) {
+            threadsDone[i] = false;
+        }
     }
 
 }

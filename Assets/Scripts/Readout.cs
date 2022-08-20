@@ -9,14 +9,14 @@ public class Readout : MonoBehaviour
     public GameObject sliderGO;
     Slider slider;
     Text txt;
-    int val;
+    object val;
 
     // Start is called before the first frame update
     void Start()
     {
         if (sliderGO != null) {
             slider = sliderGO.GetComponent<Slider>();
-            val = (int)slider.value;
+            val = slider.value;
         }
         txt = GetComponent<Text>();
     }
@@ -24,7 +24,7 @@ public class Readout : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        val = (int)slider.value;
+        val = slider.value;
         if (txt.text != val.ToString())
             txt.text = val.ToString();
     }
